@@ -1,0 +1,17 @@
+# Extension for agent team
+
+## Overview
+Create a extension to allow me to call agent team members with "&".
+
+For example: I have a agent team tom, mike, sarah. The extension allows me to call different agent with "&", like "&tom, review this code" would enable agent tom to review the code, and "&mike, write a readme.md" would enable agent mike to write a readme.md.
+
+## Requirements
+ - Each agent should have its own model, promt, tools, skills, context.
+ - config agents with a config file. config file can be global or project specific. project config will override global settings.
+ - calling an agent will suspend current agent's session/context, and restore session/context of the called agent from where it is left off.
+
+For example:
+Now I am with agent mike. Calling &tom will suspend mike's session/context and restore tom's session/context. A message will pop up to remind user the last conversation with tom. If there is no session with tom, start a new session.
+
+ - /agents will list all agents
+ - /whoami list current agent
