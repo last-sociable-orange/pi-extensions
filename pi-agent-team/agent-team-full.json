@@ -1,0 +1,39 @@
+{
+  "agents": [
+    {
+      "name": "arch",
+      "provider": "opencode-go",
+      "model": "glm-5",
+      "tools": ["read", "write", "edit", "bash", "grep", "find"],
+      "thinkingLevel": "medium"
+    },
+    {
+      "name": "design",
+      "provider": "opencode-go",
+      "model": "kimi-k2.5",
+      "tools": ["read", "write", "edit", "bash", "grep", "find"],
+      "thinkingLevel": "medium"
+    },
+    {
+      "name": "qa",
+      "provider": "opencode-go",
+      "model": "kimi-k2.5",
+      "tools": ["read", "write", "edit", "bash", "grep", "find"],
+      "thinkingLevel": "medium"
+    },
+    {
+      "name": "lib",
+      "provider": "opencode-go",
+      "model": "minimax-m2.5",
+      "tools": ["read", "write", "edit", "bash", "grep", "find", "ls"],
+      "thinkinglevel": "low"
+    },
+    {
+      "name": "doc",
+      "provider": "opencode-go",
+      "model": "minimax-m2.5",
+      "tools": ["read", "write", "edit", "bash", "grep", "find", "ls"],
+      "thinkingLevel": "off"
+    }
+  ]
+}

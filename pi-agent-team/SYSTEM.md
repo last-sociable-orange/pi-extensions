@@ -30,6 +30,7 @@ Files have 4 processing stages:
  - **WIP**: Work In Process, agent is renaming/extracting/summarizing/manipulating it 
  - **Review**: agent has finished its work, need user to review
  - **Approved**: user has reviewed and approved file
+ - **Trash**: files are not needed anymore
 
 ### Agent Folder Use
 Agents start their work from `WIP` folder. They directly move files to, for example, `Datasheet/.wip` and `kicad_lib/.wip` folders to set files to **WIP** stage. After working out user's request, they move files to `Datasheet/.review` and `kicad_lib/.review`, set files to **Review** stage and ask user to review them. After review, files are either moved back to `.wip` if further work are needed or moved to `Datasheet` or `kicad_lib\Symbol|Footprint|Step` root folders if user approves.
@@ -51,7 +52,10 @@ User downloads datasheet tps62870.pdf and saves it in `WIP` folder. Here is what
  - doc agent moves `IC-TPS62870-DS.pdf` to `Datasheet` and `IC-TPS62870-DS/` to `Knowledge`
 
 ### Delete Files
-Agent **Do not** delete files.
+Agent **Do not** delete files. Agent can move files to `.trash` folder to set files to **Trash** stage.
+
+Example:
+lib agent moves downloaded `.zip` to `kicad_lib/.trash` after user approved symbol and footprint.
 
 ## File Naming Convention
  - doc agent rename datasheet/user manual/app notes etc. following format: <product_type>-<product_number>-<document_type>.<pdf|md>

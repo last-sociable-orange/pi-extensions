@@ -1,7 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { CustomEditor } from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
-import type { Theme, Keybindings } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { homedir } from "node:os";
@@ -41,47 +39,11 @@ interface AgentSessionState {
 }
 
 // Persisted extension state
+// Persisted extension state
 interface PersistedState {
   currentAgent: string | null;
   agentSessions: Record<string, AgentSessionState>;
 }
-
-// Shared state for the custom editor (updated when agent changes)
-let editorCurrentAgent: string | null = null;
-
-// Custom editor that shows agent name as prompt prefix
-class PromptEditor extends CustomEditor {
-  private theme: Theme;
-
-  constructor(theme: Theme, keybindings: Keybindings) {
-    super(theme, keybindings);
-    this.theme = theme;
-  }
-
-  override render(width: number): string[] {
-    const lines = super.render(width);
-    if (lines.length === 0) return lines;
-
-    // Build the prompt prefix with theme coloring
-    const agentName = editorCurrentAgent || DEFAULT_AGENT_NAME;
-    const promptPrefix = this.theme.fg("accent", `${agentName} $ `);
-    const promptLen = agentName.length + 3; // visible length of "name $ "
-
-    // Prepend the prompt to each line
-    return lines.map((line, idx) => {
-      if (idx === 0) {
-        // First line: truncate to make room for prefix
-        const truncated = truncateToWidth(line, width - promptLen, "");
-        return promptPrefix + truncated;
-      }
-      // Subsequent lines: add indentation matching prompt length
-      const indent = " ".repeat(promptLen);
-      return indent + truncateToWidth(line, width - promptLen, "");
-    });
-  }
-}
-
-// Global state file path (persists across sessions)
 function getGlobalStatePath(): string {
   return path.join(homedir(), ".pi", "agent-team-state.json");
 }
@@ -327,7 +289,9 @@ export default function (pi: ExtensionAPI) {
 
       // Update state AFTER successful switch
       currentAgent = agentName;
-      editorCurrentAgent = agentName;
+
+      // Update status to show current agent
+      updateAgentStatus(ctx);
 
       // Apply agent configuration to new session
       await applyAgentConfig(agent, ctx);
@@ -344,7 +308,6 @@ export default function (pi: ExtensionAPI) {
     } catch (err) {
       // Rollback state on error
       currentAgent = previousAgent;
-      editorCurrentAgent = previousAgent;
       ctx.ui.notify(`Failed to switch agent: ${err}`, "error");
       return false;
     } finally {
@@ -415,6 +378,60 @@ export default function (pi: ExtensionAPI) {
     return `${days}d ago`;
   }
 
+  // Update footer to show current agent name prepended to model/thinking line
+  function updateAgentStatus(ctx: ExtensionContext) {
+    ctx.ui.setFooter((tui, theme, footerData) => {
+      const unsub = footerData.onBranchChange(() => tui.requestRender());
+      return {
+        dispose: unsub,
+        invalidate() {},
+        render(width: number): string[] {
+          // Line 1: Directory with git branch
+          const cwd = ctx.cwd.replace(homedir(), "~");
+          const branch = footerData.getGitBranch();
+          const dirLine = branch ? `${cwd} (${branch})` : cwd;
+
+          // Line 2: Token stats on left, agentName • model • thinking on right
+          let input = 0, output = 0, cost = 0;
+          for (const e of ctx.sessionManager.getBranch()) {
+            if (e.type === "message" && e.message.role === "assistant") {
+              const usage = (e.message as any).usage;
+              if (usage) {
+                input += usage.input || 0;
+                output += usage.output || 0;
+                cost += usage.cost?.total || 0;
+              }
+            }
+          }
+          const fmt = (n: number) => n < 1000 ? `${n}` : `${(n / 1000).toFixed(1)}k`;
+          const total = input + output;
+          const budget = ctx.model?.contextLength || 0;
+          const pct = budget > 0 ? ((total / budget) * 100).toFixed(1) : "0";
+          const left = theme.fg("dim", `${fmt(input)} ↓${fmt(output)} R${fmt(input)} $${cost.toFixed(3)} ${pct}%/${fmt(budget)} (auto)`);
+
+          // Right side: agentName • model • thinking
+          const agentName = currentAgent || DEFAULT_AGENT_NAME;
+          const model = ctx.model;
+          const thinkingLevel = pi.getThinkingLevel() || "off";
+          const parts: string[] = [agentName];
+          if (model) {
+            parts.push(model.id);
+          }
+          parts.push(thinkingLevel);
+          const right = theme.fg("dim", parts.join(" • "));
+
+          // Combine line 2 with padding
+          const visibleLeft = visibleWidth(left);
+          const visibleRight = visibleWidth(right);
+          const padding = " ".repeat(Math.max(1, width - visibleLeft - visibleRight));
+          const line2 = truncateToWidth(left + padding + right, width);
+
+          return [theme.fg("dim", dirLine), line2];
+        },
+      };
+    });
+  }
+
   // Session start - initialize and restore state
   pi.on("session_start", async (event, ctx) => {
     await initAgents(ctx);
@@ -423,12 +440,14 @@ export default function (pi: ExtensionAPI) {
     const globalState = await loadGlobalState();
     if (globalState) {
       currentAgent = globalState.currentAgent;
-      editorCurrentAgent = globalState.currentAgent;
       agentSessions.clear();
       for (const [name, state] of Object.entries(globalState.agentSessions)) {
         agentSessions.set(name, state);
       }
     }
+
+    // Update status with current agent
+    updateAgentStatus(ctx);
 
     // If we have a current agent, apply its config
     if (currentAgent && event.reason === "startup") {
@@ -438,37 +457,39 @@ export default function (pi: ExtensionAPI) {
         ctx.ui.notify(`Restored session for agent "${currentAgent}"`, "info");
       }
     }
-
-    // Set up custom editor with prompt prefix
-    ctx.ui.setEditorComponent((_tui, theme, keybindings) =>
-      new PromptEditor(theme, keybindings),
-    );
   });
 
   // Handle input for agent switching
   pi.on("input", async (event, ctx) => {
     const text = event.text.trim();
 
-    // Check for agent switch pattern: &agentName, message
+    // Check for agent switch pattern: &agentName or &agentName message or &agentName, message
     if (text.startsWith(AGENT_SWITCH_PREFIX)) {
       const rest = text.slice(1).trim();
-      const commaIdx = rest.indexOf(",");
 
       let agentName: string;
       let message: string | undefined;
 
-      if (commaIdx === -1) {
-        // Just &agentName - switch without message
-        agentName = rest;
-      } else {
-        // &agentName, message - switch and send message
+      // Find separator: comma takes precedence, then space
+      const commaIdx = rest.indexOf(",");
+      const spaceIdx = rest.indexOf(" ");
+
+      if (commaIdx !== -1) {
+        // &agentName, message
         agentName = rest.slice(0, commaIdx).trim();
         message = rest.slice(commaIdx + 1).trim();
+      } else if (spaceIdx !== -1) {
+        // &agentName message (space separated)
+        agentName = rest.slice(0, spaceIdx).trim();
+        message = rest.slice(spaceIdx + 1).trim();
+      } else {
+        // Just &agentName - switch without message
+        agentName = rest;
       }
 
       // Validate agent name
       if (!agentName) {
-        ctx.ui.notify("Usage: &<agent-name>[, message]", "warning");
+        ctx.ui.notify("Usage: &<agent-name> [message] or &<agent-name>, message", "warning");
         return { action: "handled" };
       }
 
