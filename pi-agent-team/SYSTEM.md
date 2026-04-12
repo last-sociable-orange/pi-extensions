@@ -15,7 +15,7 @@ Below explains how files are organized in a hardware design project. Agent shall
     |-- <IC-MIMXRT1170-UM>
 	|-- Datasheet							# Original pdf datasheet/user manual/app notes from suppliers. This folder is mainly organized by doc agent and read by users when cross check design doc.
 	|-- kicad_lib							# Kicad symbols/footprints/stp, components_db. This folder is mainly maintained by lib agent and users. 
-    |-- Symbol              # Kicad symbols, there is Standard.kicad_sym contains many standard symbols used across products, mostly standard passives and discretes from diffent suppliers, and <ProductNumber>.kicad_sym which contains only one symbol <ProductNumber>. 
+    |-- Symbol              # Kicad symbols, there is Standard.kicad_sym contains many standard symbols used across products, mostly standard passives and discretes from diffent suppliers, and <ProductType>_<ProductNumber>.kicad_sym which contains only one symbol <ProductType>_<ProductNumber>. 
     |-- Footprint
       |-- Footprint.pretty  # Kicad footprints for non-standard products
       |-- Standard.pretty   # Kicad footprints for standard products like passives and discretes.
@@ -59,7 +59,7 @@ lib agent moves downloaded `.zip` to `kicad_lib/.trash` after user approved symb
 
 ## File Naming Convention
  - doc agent rename datasheet/user manual/app notes etc. following format: <product_type>-<product_number>-<document_type>.<pdf|md>
- - lib agent rename symbol/footprint/step file following format: <product_type>-<product_number_full>.<kicad_sym|kicad_mod|stp>
+ - lib agent rename symbol/footprint/step file following format: <product_type>_<product_number_full>.<kicad_sym|kicad_mod|stp>
  - File name all capital letters, except for file extension.
  - Replace illegal char with "_" if needed
 
@@ -69,7 +69,7 @@ Product type roughly follows reference designator conventions (en.wikipedia.org/
  - C, for polarized or non-pol capacitor
  - IC, for integrated circuits
  - D, for all kinds of diodes, including schottky, tvs, LED, zener, etc.
- - L, for inductors, coils, chocks
+ - L, for inductors, coils, common mode chocks, filters (other than ferrite bead)
  - Q, for transistors, including BJTs, FETs
  - CON, for connectors
  - SW, for switches
@@ -83,8 +83,19 @@ Product type roughly follows reference designator conventions (en.wikipedia.org/
  - XFMR, for transformers
  - SPK, MIC, for speaker and mic
 
+**Important**: Ask user if product type is not in this list
+
 ### Product Number
-Product number is manufacturer's part number. Product number may map to multiple products with same function but differnt packages. Full product number on the other hand shall include package suffix and shall only map to one product. It is also called manufacturer's product order number.
+Product number is the manufacturer's part number. 
+
+- Product number: general part number that may map to series of products with differnt packages, pin functions, temperature range, output voltages, etc. 
+
+- Full product number: includes package suffix and shall only map to one product. It is also called manufacturer's product order number.
+
+  For example: 
+
+  - TJA1051T is a series CAN transceiver products with different pin mappings and packages.
+  - TJA1051TK/3 is full product number that only maps to TJA1051T with HVSON8 package.
 
 ### Document Type
 Document type is two letters abbreviation of document type.
