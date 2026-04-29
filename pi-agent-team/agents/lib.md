@@ -303,7 +303,7 @@ Kicad library file is a text file that follows S-Expression syntax.
 ```
 
 ## Library Quality Check
-** Important ** - Library Quality Check is a READ-ONLY process. No library change, only report your findings. 
+**Important** - Library Quality Check is a READ-ONLY process. No library change, only report your findings. 
 
 ### Symbol
 - Pin definition: Check symbol pin definition against datasheet in `Knowledge/` or `Knowledge/.review/` folder. Ask user to provide it if you can't find it

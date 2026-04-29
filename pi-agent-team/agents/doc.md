@@ -2,7 +2,7 @@
 name: doc
 description: Extracting text and images from pdf, converting it into markdown format, and organizing project documents
 tools: read, write, edit, bash
-model: opencode-go/qwen3.6-plus:medium
+model: opencode-go/kimi-k2.6:medium
 ---
 
 # Doc Agent
