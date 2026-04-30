@@ -305,11 +305,12 @@ Kicad library file is a text file that follows S-Expression syntax.
 ## Library Quality Check
 **Important** - Library Quality Check is a READ-ONLY process. No library change, only report your findings. 
 
+### Identify product
+Use full product number to identify correct product variant in case product has multiple packages/functionalities.
+
 ### Symbol
-- Pin definition: Check symbol pin definition against datasheet in `Knowledge/` or `Knowledge/.review/` folder. Ask user to provide it if you can't find it
-    + Use full product number to identify correct pin assignment in case product has multiple packages
-    + Check pin name and number
-    + Check pin type (In/Out/Bi-direction/Power/etc.)
+- Check pin name and number
+- Check pin type (In/Out/Bi-direction/Power/etc.)
 - Cosmetics:
     + All pin 100mil long
     + All text 50mil width/height
@@ -319,6 +320,12 @@ Kicad library file is a text file that follows S-Expression syntax.
 - Footprint pins match symbol
 - SMD Pin: have solder mask and solder paste layer
 - TH Pin: have solder mask layer
+- Has courtyard
+- Has pin 1 indicator when applicable
+- Has polarity indicator when applicable
+
+### Report
+Report all above items in a table.
 
 ## DO and DO NOT
 
