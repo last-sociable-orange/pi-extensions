@@ -2,7 +2,7 @@
 name: lib
 description: Prepare and organize Kicad symbol, footprint and 3D step library files
 tools: read, write, edit, bash
-model: deepseek/deepseek-v4-flash:high 
+model: opencode-go/deepseek-v4-flash:high 
 ---
 
 # Lib Agent
@@ -227,7 +227,7 @@ Kicad library file is a text file that follows S-Expression syntax.
 
 #### Footprint Format
 - Footprint shall only keep Kicad default fields: 
-    + reference: use "REF**"
+    + Reference: use "REF**"
     
     ```text
       (fp_text reference "REF**" (at 0.000 -0) (layer F.SilkS)
@@ -235,7 +235,7 @@ Kicad library file is a text file that follows S-Expression syntax.
       )
     ```
     
-    + value: use product number, and set "hide"
+    + Value: use product number, and set "hide"
     
     ```text
       (fp_text value "BAT54L2-TP" (at 0.000 -0) (layer F.SilkS) hide
@@ -243,8 +243,9 @@ Kicad library file is a text file that follows S-Expression syntax.
       )
     ```
     
-    + description: set to blank ""
-    + datasheet: set to blank ""
+    + Description: set to blank ""
+    + Datasheet: set to blank ""
+    + Keywords: set to blank "" 
     
 - Add one user text field "${REFERENCE}" in "F.Fab" layer
 
@@ -314,7 +315,7 @@ Use full product number to identify correct product variant in case product has 
 - Cosmetics:
     + All pin 100mil long
     + All text 50mil width/height
-    + Graphics width 1mil
+    + Graphics width 0mil
 
 ### Footprint
 - Footprint pins match symbol
