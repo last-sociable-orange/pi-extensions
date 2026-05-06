@@ -1,62 +1,152 @@
-# pi-agent-team
+# CircuitPilot — Agent Team for Hardware Design
 
-A [pi](https://github.com/mariozechner/pi) extension that enables multi-agent workflows with distinct personas, models, and capabilities.
+**CircuitPilot** is a [pi](https://github.com/mariozechner/pi) extension that enables multi-agent workflows for hardware/PCB design. A lead agent orchestrates a team of specialized sub-agents — each with their own system prompt, model, and tool permissions — to handle document processing, library management, and circuit design.
 
-## Overview
-
-pi-agent-team extends pi's single-agent interface into a collaborative multi-agent environment. Define specialized agents—each with their own model, system prompt, tool permissions, and thinking level—and switch between them on the fly using the `&` prefix.
-
-This is useful for:
-- **Code reviews** – Have a dedicated reviewer agent with security focus
-- **Documentation** – Switch to a technical writer agent for READMEs
-- **Architecture discussions** – Bring in an architect agent for design decisions
-- **Tool-constrained advisors** – Create agents with no tool access for pure consultation
-
-## What's Included
-
-| File | Description |
-|------|-------------|
-| `pi-agent-team.ts` | Main extension source (TypeScript) – implements agent switching, session management, and prompt customization |
-| `agent-team.json` | Example project-level configuration with 5 agents (architect, designer, qa, librarian, assistant) |
-| `example-config.json` | Sample global configuration demonstrating 3 agents (tom, mike, sarah) with different providers and capabilities |
-| `requirement.txt` | Requirements specification documenting the feature set and expected behavior |
-
-### Key Features
-
-- **Agent Switching**: Call agents with `&agentName[, message]` syntax
-- **Per-Agent Configuration**: Each agent has independent model, provider, tools, and thinking level
-- **Session Persistence**: Agent sessions are suspended and restored when switching; each agent maintains isolated conversation history
-- **Dual Config Support**: Global config at `~/.pi/agent-team.json` and project-level config at `.pi/agent-team.json`
-- **Prompt Discovery**: Agent prompts loaded from `.pi/prompts/{agent}.md` or `~/.pi/agent/prompts/{agent}.md`
-- **Visual Prompt**: Current agent name displayed as a terminal-style prefix (`agent $`)
-- **Built-in Commands**: `/agents` to list agents, `/agent <name>` to switch
-
-### Repository Structure
+## Architecture
 
 ```
-pi-agent-team/
-├── pi-agent-team.ts      # Extension implementation
-├── agent-team.json       # Example project config (5 agents)
-├── example-config.json   # Example global config (3 agents)
-├── requirement.txt       # Feature requirements
-└── README.md             # Documentation
+User → Lead Agent (AGENTS.md)
+         │
+         ├── subagent "doc"       → Process datasheets, convert PDF → Markdown
+         ├── subagent "lib"       → Manage KiCad symbols, footprints, 3D models
+         └── subagent "designer"  → Research products, write design documents
 ```
 
-## Quick Start
+The lead agent delegates tasks to sub-agents via the `subagent` tool, which spawns isolated `pi` processes. Each sub-agent has its own context window, so large tasks don't pollute the main conversation.
 
-1. Copy `pi-agent-team.ts` to your pi extensions directory:
+## Repository Structure
+
+```
+pi-extensions/
+├── pi-agent-team/
+│   ├── AGENTS.md                         # Lead agent system prompt
+│   ├── SYSTEM.md                         # File conventions, naming rules, workflow stages
+│   ├── agents/                           # Sub-agent definitions
+│   │   ├── doc.md                        # Document agent (PDF → Markdown, OCR)
+│   │   ├── designer.md                   # Hardware designer (research, design docs)
+│   │   └── lib.md                        # Library agent (symbols, footprints, 3D steps)
+│   └── extensions/
+│       └── subagents/
+│           ├── index.ts                  # Subagent tool (single, parallel, chain modes)
+│           └── agents.ts                 # Agent discovery and config parsing
+├── setup.fish                            # One-command project bootstrap
+└── README.md
+```
+
+## Sub-Agent Team
+
+| Agent | Model | Description |
+|-------|-------|-------------|
+| **doc** | `opencode-go/qwen3.6-plus:medium` | Extracts PDF datasheets, converts to Markdown via `pdf-to-markdown`, OCRs equations, organizes project documents |
+| **lib** | `deepseek/deepseek-v4-flash:high` | Processes downloaded KiCad libraries — renames, cleans, and quality-checks symbols, footprints, and 3D step files |
+| **designer** | `deepseek/deepseek-v4-pro:high` | Researches product datasheets, performs circuit design calculations, writes design documents with traceable references |
+
+Each agent is defined as a Markdown file with YAML frontmatter for metadata (name, model, tools, description) and a body containing the system prompt.
+
+## Subagent Tool Modes
+
+The extension supports three execution modes:
+
+- **Single** — Delegate one task to one agent
+- **Parallel** — Run multiple agents concurrently (up to 8 tasks, 4 at a time)
+- **Chain** — Run agents sequentially, with `{previous}` placeholder to pass output between steps
+
+## Project Setup
+
+### Quick Start
+
+```bash
+./setup.fish
+```
+
+This creates the project skeleton and clones the subagents extension into `.pi/`.
+
+### Manual Setup
+
+1. Copy the extension into your project:
    ```bash
-   mkdir -p ~/.pi/agent/extensions
-   cp pi-agent-team.ts ~/.pi/agent/extensions/
+   mkdir -p .pi/extensions/subagents
+   cp pi-agent-team/extensions/subagents/index.ts .pi/extensions/subagents/
+   cp pi-agent-team/extensions/subagents/agents.ts .pi/extensions/subagents/
    ```
 
-2. Create a configuration file at `~/.pi/agent-team.json` (use `example-config.json` as a template)
+2. Copy agent definitions:
+   ```bash
+   mkdir -p .pi/agents
+   cp pi-agent-team/agents/*.md .pi/agents/
+   ```
 
-3. Create agent prompt files at `~/.pi/agent/prompts/{agent-name}.md`
+3. Copy the lead agent prompt and system conventions:
+   ```bash
+   cp pi-agent-team/AGENTS.md .
+   cp pi-agent-team/SYSTEM.md .pi/
+   ```
 
-4. Restart pi or run `/reload`
+4. Create the project directory structure:
+   ```bash
+   mkdir -p CAD WIP Knowledge Document kicad_lib/{Symbol/Symbol,Footprint/Footprint.pretty,Step} Datasheet
+   ```
 
-5. Switch agents with `&agentName` or `&agentName, your message here`
+5. Run pi with `--system .pi/SYSTEM.md` (or however your pi configuration picks up `SYSTEM.md`).
+
+### For Global Use
+
+Agent definitions can also be placed at `~/.pi/agent/agents/` for use across all projects. Use `agentScope: "user"` in the subagent tool call to load only global agents, or `agentScope: "both"` to merge project and user agents (project agents take precedence on name collision).
+
+## File Processing Workflow
+
+The project follows a staged file workflow for all artifacts:
+
+```
+  WIP/          → Unprocessed downloads
+    ↓
+  <dir>/.wip/   → Agent is actively processing
+    ↓
+  <dir>/.review/ → Agent finished; awaiting user review
+    ↓
+  <dir>/        → User approved
+```
+
+Agents never delete files — they move unwanted files to `<dir>/.trash/` instead.
+
+### Project Directory Layout
+
+```
+Project/
+├── CAD/                    # KiCad project files (schematics, PCB)
+├── Document/               # Design documents (Myst format)
+├── Knowledge/              # Product datasheets in Markdown
+│   └── IC-TPS62870-DS/    # One folder per document
+├── Datasheet/              # Original PDF datasheets
+├── kicad_lib/              # KiCad libraries
+│   ├── Symbol/Symbol/      # Non-standard symbols
+│   │   └── Standard.kicad_sym
+│   ├── Footprint/Footprint.pretty/
+│   └── Step/               # 3D models
+└── WIP/                    # Incoming unprocessed files
+```
+
+## Naming Conventions
+
+### Documents
+```
+<ProductType>-<ProductNumber>-<DocType>.pdf
+```
+Examples: `IC-TPS62870-DS.pdf`, `IC-MIMXRT1170-UM.pdf`
+
+### Library Files
+```
+<ProductType>_<FullProductNumber>.<ext>
+```
+Examples: `XTAL_830108160801.kicad_sym`, `D_BAT54L2-TP.stp`
+
+Product types follow reference designator conventions: `R`, `C`, `IC`, `D`, `L`, `Q`, `CON`, `SW`, `XTAL`, `FB`, `F`, etc. Full product number includes the package suffix (e.g., `TJA1051TK/3` not just `TJA1051T`).
+
+## Dependencies
+
+- **pi** — The coding agent harness
+- **Required skills** (for doc agent): `pdf-to-markdown`, `pdf-utils`
+- **KiCad** (for lib agent) — Symbol and footprint tools
 
 ## License
 

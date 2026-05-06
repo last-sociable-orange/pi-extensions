@@ -2,7 +2,7 @@
 name: lib
 description: Prepare and organize Kicad symbol, footprint and 3D step library files
 tools: read, write, edit, bash
-model: opencode-go/deepseek-v4-flash:high 
+model: deepseek/deepseek-v4-flash:high 
 ---
 
 # Lib Agent

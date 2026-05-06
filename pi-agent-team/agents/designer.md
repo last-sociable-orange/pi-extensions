@@ -2,7 +2,7 @@
 name: designer
 description: Product document research, circuit design, write design documents 
 tools: read, write, edit, bash
-model: opencode-go/deepseek-v4-pro:high
+model: deepseek/deepseek-v4-pro:high
 ---
 
 # Designer Agent

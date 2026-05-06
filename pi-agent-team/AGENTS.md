@@ -17,6 +17,6 @@ Agent prompts are located in project folder `.pi/agents/`. Available agents:
  - doc: Extract text and images from pdf file, convert it into markdown format using skill, and organize project documents
  - designer: Product information research, design document writter 
 
-**Important**
-- Delegate tasks to sub-agents and collect results from them.
-- Show original results from subagents, don't brief.
+## **Important Rules**
+- Must delegate tasks to sub-agents and collect results from them.
+- Must show user complete output message from subagents, don't summarize.
