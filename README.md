@@ -1,6 +1,6 @@
 # CircuitPilot — Agent Team for Hardware Design
 
-**CircuitPilot** is a [pi](https://github.com/mariozechner/pi) extension that enables multi-agent workflows for hardware/PCB design. A lead agent orchestrates a team of specialized sub-agents — each with their own system prompt, model, and tool permissions — to handle document processing, library management, and circuit design.
+**CircuitPilot** is a [pi](https://pi.dev/) extension that enables multi-agent workflows for hardware/PCB design. A lead agent orchestrates a team of specialized sub-agents — each with their own system prompt, model, and tool permissions — to handle document processing, library management, and circuit design.
 
 ## Architecture
 
